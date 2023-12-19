@@ -17,39 +17,29 @@ import {
 } from '@/lib/validators/account-creadentials-validator';
 import { trpc } from '@/trpc/client';
 import { toast } from 'sonner';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { ZodError } from 'zod';
+import { useRouter } from 'next/navigation';
 
 const Page = () => {
-  const searchParams = useSearchParams();
   const router = useRouter();
-  const isSeller = searchParams.get('as') === 'seller';
-  const origin = searchParams.get('origin');
-
-  const continueAsSeller = () => {
-    router.push('?as=seller');
-  };
-
-  const continueAsBuyer = () => {
-    router.replace('/sign-in', undefined);
-  };
-  const { mutate: signIn, isLoading } = trpc.auth.signIn.useMutation({
-    onSuccess: async () => {
-      toast.success('Signed in successfully');
-      router.refresh();
-      if (origin) {
-        router.push(`/${origin}`);
-        return;
-      }
-      if (isSeller) {
-        router.push(`/sell`);
-        return;
-      }
-
-      router.push('/');
-    },
+  const { mutate, isLoading } = trpc.auth.createPayloadUser.useMutation({
     onError: (err) => {
-      if (err.data?.code === 'UNAUTHORIZED')
-        toast.error('Invalid email or password!!');
+      if (err.data?.code === 'CONFLICT') {
+        toast.error('This account alredy use. Sign in instead!!');
+        return;
+      }
+
+      if (err instanceof ZodError) {
+        toast.error(err.issues[0].message);
+        return;
+      }
+
+      toast.error('Something went wrong. Please try agian!!!');
+    },
+
+    onSuccess: ({ sentToEmail }) => {
+      toast.success(`Verification email send to ${sentToEmail}.`);
+      router.push('/verify-email?to=' + sentToEmail);
     },
   });
   const {
@@ -61,7 +51,7 @@ const Page = () => {
     resolver: zodResolver(AuthCredentialsValidator),
   });
   const submitHanler = ({ email, password }: TAuthCredentialsValidator) => {
-    signIn({ email, password });
+    mutate({ email, password });
   };
   return (
     <>
@@ -69,17 +59,15 @@ const Page = () => {
         <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
           <div className="flex flex-col items-center space-y-2 text-center">
             <Icons.logo className="h-20 w-20" />
-            <h1 className="text-2xl font-bold">
-              Sign in to your {!isSeller ? 'seller Account' : 'Account'}
-            </h1>
+            <h1 className="text-2xl font-bold">Create Account</h1>
             <Link
-              href="/sign-up"
+              href="/sign-in"
               className={buttonVariants({
                 variant: 'link',
                 className: 'gap-1',
               })}
             >
-              Don&apos;t have an Account?
+              Already have an acount? Sign-in
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
@@ -96,6 +84,11 @@ const Page = () => {
                       'focus-visible: ring-red-500': errors.email,
                     })}
                   />
+                  {errors?.email && (
+                    <p className="text-red-500  mt-1 text-sm">
+                      {errors.email.message}
+                    </p>
+                  )}
                 </div>
 
                 <div className="grid gap-1 py-2">
@@ -108,44 +101,16 @@ const Page = () => {
                       'focus-visible: ring-red-500': errors.password,
                     })}
                   />
+                  {errors.password && (
+                    <p className="text-red-500 mt-1 text-sm">
+                      {errors.password.message}
+                    </p>
+                  )}
                 </div>
 
-                <Button>Sign in</Button>
+                <Button>Sign-up</Button>
               </div>
             </form>
-
-            <div className="relative">
-              <div
-                className="absolute inset-0 flex items-center"
-                aria-hidden="true"
-              >
-                <span className="w-full border-t" />
-              </div>
-
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                  or
-                </span>
-              </div>
-            </div>
-
-            {!isSeller ? (
-              <Button
-                onClick={continueAsSeller}
-                variant="secondary"
-                disabled={isLoading}
-              >
-                Continue as customer
-              </Button>
-            ) : (
-              <Button
-                variant="secondary"
-                disabled={isLoading}
-                onClick={continueAsBuyer}
-              >
-                Continue as Seller
-              </Button>
-            )}
           </div>
         </div>
       </div>

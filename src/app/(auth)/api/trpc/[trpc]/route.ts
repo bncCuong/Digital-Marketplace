@@ -8,6 +8,8 @@ const hanler = (req: Request) => {
     endpoint: '/api/trpc',
     req,
     router: appRouter,
+
+    // @ts-expect-error context alrd passed
     createContext: () => ({}),
   });
 };

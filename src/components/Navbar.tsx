@@ -7,9 +7,13 @@ import { Icons } from './Icon';
 import NavItems from './NavItems';
 import { buttonVariants } from './ui/button';
 import Cart from './Cart';
+import { getSeverSideUser } from '@/lib/payload-utils';
+import { cookies } from 'next/headers';
+import UserAccountNav from './UserAccountNav';
 
-const Navbar = () => {
-  const user = null;
+const Navbar = async () => {
+  const nextCookies = cookies();
+  const { user } = await getSeverSideUser(nextCookies);
   return (
     <div className="bg-white sticky z-50 top-0 inset-x-0 h-16">
       <header className="relative bg-white">
@@ -32,7 +36,14 @@ const Navbar = () => {
               {/* right navbar */}
               <div className="ml-auto flex items-center">
                 <div className="hidden lg:flex lg:flex-1 lg:items-center lg:justify-end lg:space-x-6">
-                  {user ? null : (
+                  {user ? (
+                    <Link
+                      href="sign-in"
+                      className={buttonVariants({ variant: 'ghost' })}
+                    >
+                      Sign out
+                    </Link>
+                  ) : (
                     <Link
                       href="sign-in"
                       className={buttonVariants({ variant: 'ghost' })}
@@ -49,7 +60,7 @@ const Navbar = () => {
                   )}
 
                   {user ? (
-                    <p></p>
+                    <UserAccountNav user={user} />
                   ) : (
                     <Link
                       href="sign-up"

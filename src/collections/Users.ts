@@ -4,16 +4,24 @@ import { CollectionConfig } from 'payload/types';
 
 export const Users: CollectionConfig = {
   slug: 'users',
-  auth: true,
+  auth: {
+    verify: true,
+    // {
+    // generateEmailHTML: ({ token }) => {
+    //   return `<p>Hello </p>`;
+    // },
+
+    // },
+  },
   access: {
     read: () => true,
     create: () => true,
   },
   fields: [
     {
-      // admin: {
-      //   condition: () => false,
-      // },
+      admin: {
+        condition: () => false,
+      },
       required: true,
       defaultValue: 'user',
       name: 'role',
